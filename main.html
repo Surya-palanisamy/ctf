@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Hackers Arena - Timer Challenge</title>
+</head>
+
+<body>
+    <h2>⏳ Timer Challenge</h2>
+    <p id="timer"></p>
+
+    <script>
+        // Set countdown time (30 days + 3 hrs in ms)
+        let endTime = Date.now() + (30 * 24 * 60 * 60 * 1000) + (3 * 60 * 60 * 1000);
+
+        // Encoded flag stored in localStorage
+        const encoded = [67, 84, 70, 123, 84, 105, 109, 101, 95, 72, 97, 99, 107, 105, 110, 103, 125];
+        if (!localStorage.getItem("hiddenFlag")) {
+            localStorage.setItem("hiddenFlag", btoa(encoded.join(",")));
+        }
+
+        function decodeFlag() {
+            let stored = localStorage.getItem("hiddenFlag");
+            if (!stored) return null;
+            let arr = atob(stored).split(",").map(Number);
+            return arr.map(c => String.fromCharCode(c)).join("");
+        }
+
+        function setCookie(name, value, days) {
+            let d = new Date();
+            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+            let expires = "expires=" + d.toUTCString();
+            document.cookie = name + "=" + value + ";" + expires + ";path=/";
+        }
+
+        function updateTimer() {
+            let now = Date.now();
+            let diff = endTime - now;
+
+            if (diff <= 0) {
+                document.getElementById("timer").textContent = "✅ Timer Finished!";
+
+                // Decode from localStorage and store in cookie
+                let flag = decodeFlag();
+                if (flag) {
+                    setCookie("CTF_Flag", flag, 1); // cookie valid for 1 day
+                }
+            } else {
+                let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                document.getElementById("timer").textContent =
+                    `${days}d ${hours}h ${minutes}m ${seconds}s remaining...`;
+            }
+        }
+
+        setInterval(updateTimer, 1000);
+    </script>
+</body>
+
+</html>
