@@ -1,63 +1,138 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Hackers Arena - Timer Challenge</title>
+  <meta charset="utf-8" />
+  <title>Hackers Arena - Timer Challenge</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #detected { color: red; font-weight: bold; display: none; }
+  </style>
 </head>
-
 <body>
-    <h2>⏳ Timer Challenge</h2>
-    <p id="timer"></p>
+  <h2>⏳ Timer Challenge</h2>
+  <p id="timer"></p>
+  <p id="detected">⚠️ DevTools detected — page behavior may be restricted.</p>
 
-    <script>
-        // Set countdown time (30 days + 3 hrs in ms)
-        let endTime = Date.now() + (30 * 24 * 60 * 60 * 1000) + (3 * 60 * 60 * 1000);
+  <script>
+    let endTime = Date.now() + (30 * 24 * 60 * 60 * 1000) + (3 * 60 * 60 * 1000);
+    const encoded = [67, 84, 70, 123, 84, 105, 109, 101, 95, 72, 97, 99, 107, 105, 110, 103, 125];
+    if (!localStorage.getItem("hiddenFlag")) {
+      localStorage.setItem("hiddenFlag", btoa(encoded.join(",")));
+    }
 
-        // Encoded flag stored in localStorage
-        const encoded = [67, 84, 70, 123, 84, 105, 109, 101, 95, 72, 97, 99, 107, 105, 110, 103, 125];
-        if (!localStorage.getItem("hiddenFlag")) {
-            localStorage.setItem("hiddenFlag", btoa(encoded.join(",")));
+    function decodeFlag() {
+      let stored = localStorage.getItem("hiddenFlag");
+      if (!stored) return null;
+      let arr = atob(stored).split(",").map(Number);
+      return arr.map(c => String.fromCharCode(c)).join("");
+    }
+
+    function setCookie(name, value, days) {
+      let d = new Date();
+      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+      let expires = "expires=" + d.toUTCString();
+      document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/";
+    }
+
+    function updateTimer() {
+      let now = Date.now();
+      let diff = endTime - now;
+
+      if (diff <= 0) {
+        document.getElementById("timer").textContent = "✅ Timer Finished!";
+
+        let flag = decodeFlag();
+        if (flag) {
+          setCookie("CTF_Flag", flag, 1); 
         }
+      } else {
+        let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        let seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-        function decodeFlag() {
-            let stored = localStorage.getItem("hiddenFlag");
-            if (!stored) return null;
-            let arr = atob(stored).split(",").map(Number);
-            return arr.map(c => String.fromCharCode(c)).join("");
+        document.getElementById("timer").textContent =
+          `${days}d ${hours}h ${minutes}m ${seconds}s remaining...`;
+      }
+    }
+    setInterval(updateTimer, 1000);
+    updateTimer();
+
+
+    window.addEventListener("keydown", function (e) {
+      // F12
+      if (e.key === "F12" || e.keyCode === 123) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      if (e.ctrlKey && e.shiftKey && (e.key === 'K' || e.key === 'k')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, true);
+
+    // Block right-click context menu
+    window.addEventListener('contextmenu', function (e) {
+      e.preventDefault();
+    }, true);
+
+    let devtoolsOpen = false;
+    const threshold = 160; 
+
+    function detectDevTools() {
+      const widthDiff = window.outerWidth - window.innerWidth;
+      const heightDiff = window.outerHeight - window.innerHeight;
+      if (widthDiff > threshold || heightDiff > threshold) {
+        if (!devtoolsOpen) {
+          devtoolsOpen = true;
+          onDevToolsDetected();
         }
-
-        function setCookie(name, value, days) {
-            let d = new Date();
-            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-            let expires = "expires=" + d.toUTCString();
-            document.cookie = name + "=" + value + ";" + expires + ";path=/";
+      } else {
+        if (devtoolsOpen) {
+          devtoolsOpen = false;
+          onDevToolsClosed();
         }
+      }
+    }
 
-        function updateTimer() {
-            let now = Date.now();
-            let diff = endTime - now;
+    function onDevToolsDetected() {
+      const el = document.getElementById('detected');
+      if (el) el.style.display = 'block';
+      console.warn('DevTools suspected open — limited functionality applied.');
+    }
 
-            if (diff <= 0) {
-                document.getElementById("timer").textContent = "✅ Timer Finished!";
+    function onDevToolsClosed() {
+      const el = document.getElementById('detected');
+      if (el) el.style.display = 'none';
+      console.log('DevTools closed (or heuristics say so).');
+    }
 
-                // Decode from localStorage and store in cookie
-                let flag = decodeFlag();
-                if (flag) {
-                    setCookie("CTF_Flag", flag, 1); // cookie valid for 1 day
-                }
-            } else {
-                let days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    // Check periodically
+    setInterval(detectDevTools, 1000);
 
-                document.getElementById("timer").textContent =
-                    `${days}d ${hours}h ${minutes}m ${seconds}s remaining...`;
-            }
-        }
-
-        setInterval(updateTimer, 1000);
-    </script>
+    (function () {
+      const start = Date.now();
+      debugger; 
+      const took = Date.now() - start;
+      if (took > 100) {
+        onDevToolsDetected();
+      }
+    })();
+  </script>
 </body>
-
 </html>
